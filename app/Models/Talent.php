@@ -13,11 +13,11 @@ class Talent extends Model
         'name',
         'photo',
         'role',
-        'tagline',
         'bio',
         'niche',
         'interests',
         'skills',
+        'followers_count', // Tambahkan ini
         'experience',
         'portfolio',
         'achievements',
@@ -29,6 +29,7 @@ class Talent extends Model
         'is_featured',
     ];
 
+    // Pastikan casts tetap ada
     protected $casts = [
         'interests' => 'array',
         'skills' => 'array',

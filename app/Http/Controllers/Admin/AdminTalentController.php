@@ -11,7 +11,7 @@ class AdminTalentController extends Controller
 {
     public function index()
     {
-        $talents = Talent::latest()->paginate(15);
+        $talents = Talent::latest()->paginate(10);
         return view('admin.talents.index', compact('talents'));
     }
 
@@ -22,42 +22,57 @@ class AdminTalentController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'role' => 'required|string|max:255',
-            'tagline' => 'required|string',
-            'bio' => 'required|string',
             'niche' => 'required|string|max:255',
+            'followers_count' => 'nullable|integer',
+            'bio' => 'required|string',
+            'skills' => 'required|string', // Input string dipisah koma
             'interests' => 'nullable|string',
-            'skills' => 'required|string',
             'experience' => 'nullable|string',
-            'portfolio' => 'nullable|string',
             'achievements' => 'nullable|string',
             'instagram' => 'nullable|url',
             'tiktok' => 'nullable|url',
             'youtube' => 'nullable|url',
             'linkedin' => 'nullable|url',
             'email' => 'nullable|email',
-            'is_featured' => 'boolean',
+            'photo' => 'required|image|max:2048',
+            'portfolio' => 'nullable|array', // Array dari form repeater
         ]);
 
+        // Upload Foto Profil
         if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('talents', 'public');
+            $data['photo'] = $request->file('photo')->store('talents', 'public');
         }
 
-        // Convert comma-separated strings to JSON arrays
-        $validated['skills'] = json_encode(array_map('trim', explode(',', $validated['skills'])));
+        // Convert String "Skill A, Skill B" menjadi Array JSON
+        $data['skills'] = array_map('trim', explode(',', $request->skills));
         
-        if (!empty($validated['interests'])) {
-            $validated['interests'] = json_encode(array_map('trim', explode(',', $validated['interests'])));
-        }
-        
-        if (!empty($validated['portfolio'])) {
-            $validated['portfolio'] = json_encode(array_map('trim', explode(',', $validated['portfolio'])));
+        if($request->interests) {
+            $data['interests'] = array_map('trim', explode(',', $request->interests));
         }
 
-        Talent::create($validated);
+        // Handle Portfolio Uploads (JSON Structure)
+        $portfolioData = [];
+        if ($request->has('portfolio')) {
+            foreach ($request->portfolio as $index => $item) {
+                // Upload thumbnail jika ada
+                $thumbPath = null;
+                if (isset($item['thumbnail']) && $item['thumbnail'] instanceof \Illuminate\Http\UploadedFile) {
+                    $thumbPath = $item['thumbnail']->store('portfolios', 'public');
+                }
+
+                $portfolioData[] = [
+                    'title' => $item['title'] ?? 'Untitled Project',
+                    'link'  => $item['link'] ?? '#',
+                    'thumbnail' => $thumbPath
+                ];
+            }
+        }
+        $data['portfolio'] = $portfolioData; // Laravel otomatis encode ke JSON karena casting di Model
+
+        Talent::create($data);
 
         return redirect()->route('admin.talents.index')->with('success', 'Talent added successfully!');
     }
@@ -69,61 +84,69 @@ class AdminTalentController extends Controller
 
     public function update(Request $request, Talent $talent)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'role' => 'required|string|max:255',
-            'tagline' => 'required|string',
-            'bio' => 'required|string',
             'niche' => 'required|string|max:255',
-            'interests' => 'nullable|string',
+            'followers_count' => 'nullable|integer',
+            'bio' => 'required|string',
             'skills' => 'required|string',
+            'interests' => 'nullable|string',
             'experience' => 'nullable|string',
-            'portfolio' => 'nullable|string',
             'achievements' => 'nullable|string',
             'instagram' => 'nullable|url',
             'tiktok' => 'nullable|url',
             'youtube' => 'nullable|url',
             'linkedin' => 'nullable|url',
             'email' => 'nullable|email',
-            'is_featured' => 'boolean',
+            'photo' => 'nullable|image|max:2048',
+            'portfolio' => 'nullable|array',
         ]);
 
+        // Handle Photo Update
         if ($request->hasFile('photo')) {
-            if ($talent->photo) {
-                Storage::disk('public')->delete($talent->photo);
+            // Hapus foto lama
+            if ($talent->photo) Storage::disk('public')->delete($talent->photo);
+            $data['photo'] = $request->file('photo')->store('talents', 'public');
+        }
+
+        // Convert Array
+        $data['skills'] = array_map('trim', explode(',', $request->skills));
+        if($request->interests) {
+            $data['interests'] = array_map('trim', explode(',', $request->interests));
+        }
+
+        // Handle Portfolio Logic (Campuran data lama & baru agak kompleks, kita simplifikasi replace all untuk sekarang)
+        // Idealnya: Cek apakah user upload gambar baru untuk portfolio tertentu.
+        $currentPortfolio = $talent->portfolio ?? [];
+        $newPortfolioData = [];
+
+        if ($request->has('portfolio')) {
+            foreach ($request->portfolio as $key => $item) {
+                $thumbPath = $item['existing_thumbnail'] ?? null; // Ambil path lama dari hidden input
+
+                if (isset($item['thumbnail']) && $item['thumbnail'] instanceof \Illuminate\Http\UploadedFile) {
+                    $thumbPath = $item['thumbnail']->store('portfolios', 'public');
+                }
+
+                $newPortfolioData[] = [
+                    'title' => $item['title'],
+                    'link' => $item['link'],
+                    'thumbnail' => $thumbPath
+                ];
             }
-            $validated['photo'] = $request->file('photo')->store('talents', 'public');
         }
+        $data['portfolio'] = $newPortfolioData;
 
-        // Convert comma-separated strings to JSON arrays
-        $validated['skills'] = json_encode(array_map('trim', explode(',', $validated['skills'])));
-        
-        if (!empty($validated['interests'])) {
-            $validated['interests'] = json_encode(array_map('trim', explode(',', $validated['interests'])));
-        } else {
-            $validated['interests'] = null;
-        }
-        
-        if (!empty($validated['portfolio'])) {
-            $validated['portfolio'] = json_encode(array_map('trim', explode(',', $validated['portfolio'])));
-        } else {
-            $validated['portfolio'] = null;
-        }
-
-        $talent->update($validated);
+        $talent->update($data);
 
         return redirect()->route('admin.talents.index')->with('success', 'Talent updated successfully!');
     }
 
     public function destroy(Talent $talent)
     {
-        if ($talent->photo) {
-            Storage::disk('public')->delete($talent->photo);
-        }
-        
+        if ($talent->photo) Storage::disk('public')->delete($talent->photo);
         $talent->delete();
-
-        return redirect()->route('admin.talents.index')->with('success', 'Talent deleted successfully!');
+        return redirect()->route('admin.talents.index')->with('success', 'Talent deleted.');
     }
 }
