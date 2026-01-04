@@ -48,6 +48,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // ROUTE KELAS ONLINE (FRONTEND)
+    Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
+    // Detail Kelas (Overview)
+    Route::get('/courses/{course:slug}', [App\Http\Controllers\CourseController::class, 'show'])->name('courses.show');
+    
+    // Nonton / Belajar (Materi Pertama)
+    Route::get('/courses/{course:slug}/learn', [App\Http\Controllers\CourseController::class, 'learning'])->name('courses.start');
+    
+    // Nonton / Belajar (Materi Spesifik)
+    Route::get('/courses/{course:slug}/learn/{lesson}', [App\Http\Controllers\CourseController::class, 'learning'])->name('courses.learning');
 });
 
 
@@ -67,6 +77,12 @@ Route::middleware(['auth', IsAdmin::class])
         Route::patch('/contacts/{contact}/mark-read', [AdminController::class, 'markRead'])->name('contacts.mark-read');
         // ... di dalam group admin ...
         Route::resource('users', \App\Http\Controllers\Admin\AdminUserController::class);
+        Route::resource('courses', \App\Http\Controllers\Admin\AdminCourseController::class);
+
+        // Tambahan khusus untuk manage materi/lessons nanti (persiapan Langkah 3)
+        Route::get('courses/{course}/lessons/create', [\App\Http\Controllers\Admin\AdminCourseController::class, 'createLesson'])->name('courses.lessons.create');
+        Route::post('courses/{course}/lessons', [\App\Http\Controllers\Admin\AdminCourseController::class, 'storeLesson'])->name('courses.lessons.store');
+        Route::delete('lessons/{courseLesson}', [\App\Http\Controllers\Admin\AdminCourseController::class, 'destroyLesson'])->name('lessons.destroy');
     });
 
 // Load auth routes
