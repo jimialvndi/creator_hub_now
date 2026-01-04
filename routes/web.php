@@ -31,9 +31,8 @@ Route::get('/talents/{talent}', [TalentController::class, 'show'])->name('talent
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
-Route::get('/classes', function () {
-    return view('dashboard'); // Sementara arahkan ke dashboard atau view 'coming soon'
-})->name('classes.index');
+Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
+Route::get('/courses/{course:slug}', [App\Http\Controllers\CourseController::class, 'show'])->name('courses.show');
 
 
 // ==========================================
@@ -48,11 +47,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    // ROUTE KELAS ONLINE (FRONTEND)
-    Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
-    // Detail Kelas (Overview)
-    Route::get('/courses/{course:slug}', [App\Http\Controllers\CourseController::class, 'show'])->name('courses.show');
-    
+
+    Route::get('/my-courses', [App\Http\Controllers\CourseController::class, 'myCourses'])->name('courses.my');
+
     // Nonton / Belajar (Materi Pertama)
     Route::get('/courses/{course:slug}/learn', [App\Http\Controllers\CourseController::class, 'learning'])->name('courses.start');
     

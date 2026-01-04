@@ -27,6 +27,7 @@
     </head>
     <body class="font-sans antialiased bg-gray-50 text-gray-900 flex flex-col min-h-screen">
         
+        @if(!isset($hideNav))
         <nav x-data="{ open: false, userDropdown: false }" class="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50">
             <div class="container mx-auto px-4 h-full flex items-center justify-between">
                 <a href="{{ route('home') }}" class="flex items-center">
@@ -34,10 +35,11 @@
                 </a>
 
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="{{ route('home') }}" class="text-gray-700 hover:text-primary transition font-medium">Home</a>
-                    <a href="{{ route('talents.index') }}" class="text-gray-700 hover:text-primary transition font-medium">Talents</a>
-                    <a href="#" class="text-gray-700 hover:text-primary transition font-medium">
-                        Kelas Online <span class="text-[10px] align-top bg-red-100 text-red-600 px-1 rounded ml-0.5">Soon</span>
+                    <a href="{{ route('home') }}" class="text-gray-700 hover:text-primary transition font-medium {{ request()->routeIs('home') ? 'text-primary' : '' }}">Home</a>
+                    <a href="{{ route('talents.index') }}" class="text-gray-700 hover:text-primary transition font-medium {{ request()->routeIs('talents.*') ? 'text-primary' : '' }}">Talents</a>
+                    
+                    <a href="{{ route('courses.index') }}" class="text-gray-700 hover:text-primary transition font-medium {{ request()->routeIs('courses.*') ? 'text-primary' : '' }}">
+                        Kelas Online
                     </a>
 
                     @auth
@@ -69,9 +71,8 @@
                                         Admin Dashboard
                                     </a>
                                 @else
-                                    <a href="#" class="block px-4 py-2 text-sm text-gray-400 hover:bg-gray-50 flex justify-between">
+                                    <a href="{{ route('courses.my') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                         My Courses
-                                        <span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Soon</span>
                                     </a>
                                 @endif
 
@@ -107,6 +108,9 @@
                 <div class="px-4 py-4 flex flex-col space-y-3">
                     <a href="{{ route('home') }}" class="block text-gray-700 hover:text-primary py-2">Home</a>
                     <a href="{{ route('talents.index') }}" class="block text-gray-700 hover:text-primary py-2">Talents</a>
+                    
+                    <a href="{{ route('courses.index') }}" class="block text-gray-700 hover:text-primary py-2 {{ request()->routeIs('courses.*') ? 'text-primary font-bold' : '' }}">Kelas Online</a>
+
                     @auth
                         <div class="border-t border-gray-200 pt-3 mt-2">
                             <div class="font-medium text-base text-gray-800 px-2 mb-2">{{ Auth::user()->name }}</div>
@@ -116,7 +120,7 @@
                             @if(Auth::user()->role === 'admin')
                                 <a href="{{ route('admin.dashboard') }}" class="block px-2 py-2 text-primary font-bold">Admin Dashboard</a>
                             @else
-                                <a href="#" class="block px-2 py-2 text-gray-400">My Courses (Soon)</a>
+                                <a href="{{ route('courses.my') }}" class="block px-2 py-2 text-gray-700 hover:text-primary">My Courses</a>
                             @endif
                             
                             <form method="POST" action="{{ route('logout') }}">
@@ -133,11 +137,13 @@
                 </div>
             </div>
         </nav>
+        @endif
 
-        <main class="pt-16 flex-grow">
+        <main class="{{ isset($hideNav) ? '' : 'pt-16' }} flex-grow">
             @yield('content')
         </main>
         
+        @if(!isset($hideNav))
         <footer class="bg-primary text-white py-12 mt-auto">
             <div class="container mx-auto px-4">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -151,7 +157,7 @@
                         <h4 class="font-bold mb-4">Quick Links</h4>
                         <ul class="space-y-2 text-sm text-gray-300">
                             <li><a href="{{ route('talents.index') }}" class="hover:text-accent transition">Talents</a></li>
-                            <li><a href="#" class="hover:text-accent transition">Kelas Online</a></li>
+                            <li><a href="{{ route('courses.index') }}" class="hover:text-accent transition">Kelas Online</a></li>
                         </ul>
                     </div>
                     <div>
@@ -164,5 +170,6 @@
                 </div>
             </div>
         </footer>
+        @endif
     </body>
 </html>

@@ -23,48 +23,71 @@ class CourseController extends Controller
         $course->load(['lessons' => function ($query) {
             $query->orderBy('sort_order', 'asc');
         }]);
-        
+
         return view('courses.show', compact('course'));
     }
 
     // Halaman Belajar (Nonton Video)
-    public function learning(Course $course, $lessonId = null)
+    public function learning(Course $course, CourseLesson $lesson = null)
     {
-        // 1. Cek Permission (Siapa yang boleh akses?)
         $user = Auth::user();
-        $canAccess = false;
 
+        // Pengecekan akses (sama seperti sebelumnya)
+        $canAccess = false;
         if ($user->role === 'admin') {
-            $canAccess = true; // Admin bebas akses
+            $canAccess = true;
         } elseif ($course->access_level === 'free') {
-            $canAccess = true; // Kelas gratis, semua user login bisa
+            $canAccess = true;
         } elseif ($course->access_level === 'member' && in_array($user->role, ['member', 'pro_member'])) {
-            $canAccess = true; // Kelas member, bisa diakses Member & Pro
+            $canAccess = true;
         } elseif ($course->access_level === 'pro_member' && $user->role === 'pro_member') {
-            $canAccess = true; // Kelas Pro, hanya Pro
+            $canAccess = true;
         }
 
-        // Jika tidak punya akses, tendang ke halaman detail dengan pesan error
         if (!$canAccess) {
             return redirect()->route('courses.show', $course->slug)
-                ->with('error', 'Anda perlu upgrade akun untuk mengakses kelas ini.');
+                ->with('error', 'Akun Anda tidak memiliki akses ke kelas ini.');
         }
 
-        // 2. Load Materi
-        // Jika lessonId tidak ada (user klik "Mulai Belajar"), ambil materi pertama
-        $currentLesson = $lessonId 
-            ? $course->lessons()->findOrFail($lessonId) 
-            : $course->lessons()->orderBy('sort_order', 'asc')->first();
-
-        // Jika kelas belum ada materinya sama sekali
-        if (!$currentLesson) {
-            return redirect()->route('courses.show', $course->slug)
-                ->with('error', 'Materi kelas ini belum tersedia.');
-        }
-
-        // Load semua lesson untuk sidebar navigasi
+        // Ambil semua materi urut berdasarkan sort_order
         $lessons = $course->lessons()->orderBy('sort_order', 'asc')->get();
 
-        return view('courses.learning', compact('course', 'lessons', 'currentLesson'));
+        // Tentukan materi saat ini
+        $currentLesson = $lesson ?: $lessons->first();
+
+        // Cari index materi saat ini untuk menentukan Prev dan Next
+        $currentIndex = $lessons->pluck('id')->search($currentLesson->id);
+        $prevLesson = $lessons->get($currentIndex - 1);
+        $nextLesson = $lessons->get($currentIndex + 1);
+
+        return view('courses.learning', compact('course', 'lessons', 'currentLesson', 'prevLesson', 'nextLesson'), [
+            'hideNav' => true // Menyembunyikan navbar utama
+        ]);
+    }
+
+    public function myCourses()
+    {
+        $user = Auth::user(); //
+
+        // Filter kelas berdasarkan role user
+        $courses = Course::withCount('lessons')
+            ->where(function ($query) use ($user) {
+                $query->where('access_level', 'free');
+
+                if (in_array($user->role, ['member', 'pro_member', 'admin'])) {
+                    $query->orWhere('access_level', 'member');
+                }
+
+                if (in_array($user->role, ['pro_member', 'admin'])) {
+                    $query->orWhere('access_level', 'pro_member');
+                }
+            })
+            ->latest()
+            ->get();
+
+        return view('courses.my-courses', [
+            'courses' => $courses,
+            'hideNav' => true // Variabel ini akan menghilangkan nav bar
+        ]);
     }
 }

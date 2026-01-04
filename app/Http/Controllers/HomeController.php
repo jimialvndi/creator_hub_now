@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Talent;
 use Illuminate\Http\Request;
+use App\Models\Course;
 
 class HomeController extends Controller
 {
@@ -13,14 +14,22 @@ class HomeController extends Controller
  *
  * @return \Illuminate\Http\Response
  */
-/*******  49afa796-15e1-4fc4-a212-279255bc6920  *******/    public function index()
+    public function index()
     {
         $talents = Talent::latest()->take(6)->get();
-        return view('home', compact('talents'));
+
+        // 3. Ambil data kursus terbaru (misal: 3 kursus)
+        // withCount('lessons') digunakan untuk menghitung jumlah materi secara otomatis
+        $featuredCourses = Course::withCount('lessons')->latest()->take(3)->get();
+
+        // 4. Kirim variabel $featuredCourses ke view
+        return view('home', compact('talents', 'featuredCourses'));
     }
 
     public function about()
     {
         return view('about');
     }
+
+    
 }
