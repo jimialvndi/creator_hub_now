@@ -11,6 +11,19 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script>
+            // Fallback config
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: '#1E5BFF',
+                            accent: '#FFF200',
+                        }
+                    }
+                }
+            }
+        </script>
     </head>
     <body class="font-sans antialiased bg-gray-50 text-gray-900 flex flex-col min-h-screen">
         
@@ -24,7 +37,7 @@
                     <a href="{{ route('home') }}" class="text-gray-700 hover:text-primary transition font-medium">Home</a>
                     <a href="{{ route('talents.index') }}" class="text-gray-700 hover:text-primary transition font-medium">Talents</a>
                     <a href="#" class="text-gray-700 hover:text-primary transition font-medium">
-                        Kelas Online <span class="text-[10px] align-top bg-red-100 text-red-600 px-1 rounded ml-0.5">New</span>
+                        Kelas Online <span class="text-[10px] align-top bg-red-100 text-red-600 px-1 rounded ml-0.5">Soon</span>
                     </a>
 
                     @auth
@@ -44,14 +57,26 @@
                                  x-transition:enter-start="transform opacity-0 scale-95"
                                  x-transition:enter-end="transform opacity-100 scale-100"
                                  x-transition:leave="transition ease-in duration-75"
-                                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1" 
+                                 class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-100 py-1" 
                                  style="display: none;">
                                 
-                                <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Dashboard</a>
+                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    Profile Settings
+                                </a>
+
                                 @if(Auth::user()->role === 'admin')
-                                    <a href="{{ route('admin.talents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Manage Talents</a>
+                                    <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-primary font-semibold hover:bg-gray-50">
+                                        Admin Dashboard
+                                    </a>
+                                @else
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-400 hover:bg-gray-50 flex justify-between">
+                                        My Courses
+                                        <span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Soon</span>
+                                    </a>
                                 @endif
-                                <div class="border-t border-gray-100"></div>
+
+                                <div class="border-t border-gray-100 my-1"></div>
+
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <a href="{{ route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
@@ -84,11 +109,19 @@
                     <a href="{{ route('talents.index') }}" class="block text-gray-700 hover:text-primary py-2">Talents</a>
                     @auth
                         <div class="border-t border-gray-200 pt-3 mt-2">
-                            <div class="font-medium text-base text-gray-800 px-2">{{ Auth::user()->name }}</div>
-                            <a href="{{ route('dashboard') }}" class="block px-2 py-2 text-gray-700 hover:text-primary mt-2">Dashboard</a>
+                            <div class="font-medium text-base text-gray-800 px-2 mb-2">{{ Auth::user()->name }}</div>
+                            
+                            <a href="{{ route('profile.edit') }}" class="block px-2 py-2 text-gray-700 hover:text-primary">Profile Settings</a>
+
+                            @if(Auth::user()->role === 'admin')
+                                <a href="{{ route('admin.dashboard') }}" class="block px-2 py-2 text-primary font-bold">Admin Dashboard</a>
+                            @else
+                                <a href="#" class="block px-2 py-2 text-gray-400">My Courses (Soon)</a>
+                            @endif
+                            
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <a href="{{ route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();" class="block px-2 py-2 text-red-600 font-semibold">Log Out</a>
+                                <a href="{{ route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();" class="block px-2 py-2 text-red-600 font-semibold mt-2">Log Out</a>
                             </form>
                         </div>
                     @else
@@ -102,25 +135,7 @@
         </nav>
 
         <main class="pt-16 flex-grow">
-            {{-- Header (Khusus Dashboard Breeze) --}}
-            @isset($header)
-                <header class="bg-white shadow relative z-10">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
-
-            {{-- LOGIKA HYBRID: Cek Slot atau Yield --}}
-            @if(isset($slot) && $slot->isNotEmpty())
-                {{-- Ini untuk halaman Dashboard/Profile Breeze --}}
-                <div class="py-6">
-                    {{ $slot }}
-                </div>
-            @else
-                {{-- Ini untuk halaman Home/Talents Lama --}}
-                @yield('content')
-            @endif
+            @yield('content')
         </main>
         
         <footer class="bg-primary text-white py-12 mt-auto">
