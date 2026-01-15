@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Talent extends Model
 {
@@ -27,6 +29,8 @@ class Talent extends Model
         'linkedin',
         'email',
         'is_featured',
+        'rate_min', // TAMBAHKAN
+        'rate_max', // TAMBAHKAN
     ];
 
     // Pastikan casts tetap ada
@@ -50,5 +54,13 @@ class Talent extends Model
     public function getPortfolioArrayAttribute()
     {
         return is_array($this->portfolio) ? $this->portfolio : json_decode($this->portfolio, true) ?? [];
+    }
+
+    // Relasi ke Campaign
+    public function campaigns()
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_talent')
+                    ->withPivot('status')
+                    ->withTimestamps();
     }
 }

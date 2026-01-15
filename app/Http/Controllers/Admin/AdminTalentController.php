@@ -22,13 +22,17 @@ class AdminTalentController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validasi Input (Termasuk Rate Card & Featured)
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'role' => 'required|string|max:255',
             'niche' => 'required|string|max:255',
             'followers_count' => 'nullable|integer',
+            'rate_min' => 'required|numeric|min:0', // BARU
+            'rate_max' => 'required|numeric|gte:rate_min', // BARU
+            'is_featured' => 'nullable', // Checkbox mengirim '1' atau null
             'bio' => 'required|string',
-            'skills' => 'required|string', // Input string dipisah koma
+            'skills' => 'required|string',
             'interests' => 'nullable|string',
             'experience' => 'nullable|string',
             'achievements' => 'nullable|string',
@@ -38,39 +42,39 @@ class AdminTalentController extends Controller
             'linkedin' => 'nullable|url',
             'email' => 'nullable|email',
             'photo' => 'required|image|max:2048',
-            'portfolio' => 'nullable|array', // Array dari form repeater
+            'portfolio' => 'nullable|array',
         ]);
 
-        // Upload Foto Profil
+        // Handle Checkbox Featured (jika dicentang value '1', jika tidak null -> convert ke boolean)
+        $data['is_featured'] = $request->has('is_featured') ? true : false;
+
+        // Upload Foto
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')->store('talents', 'public');
         }
 
-        // Convert String "Skill A, Skill B" menjadi Array JSON
+        // Convert String ke Array
         $data['skills'] = array_map('trim', explode(',', $request->skills));
-        
         if($request->interests) {
             $data['interests'] = array_map('trim', explode(',', $request->interests));
         }
 
-        // Handle Portfolio Uploads (JSON Structure)
+        // Handle Portfolio
         $portfolioData = [];
         if ($request->has('portfolio')) {
-            foreach ($request->portfolio as $index => $item) {
-                // Upload thumbnail jika ada
+            foreach ($request->portfolio as $item) {
                 $thumbPath = null;
                 if (isset($item['thumbnail']) && $item['thumbnail'] instanceof \Illuminate\Http\UploadedFile) {
                     $thumbPath = $item['thumbnail']->store('portfolios', 'public');
                 }
-
                 $portfolioData[] = [
-                    'title' => $item['title'] ?? 'Untitled Project',
+                    'title' => $item['title'] ?? 'Untitled',
                     'link'  => $item['link'] ?? '#',
                     'thumbnail' => $thumbPath
                 ];
             }
         }
-        $data['portfolio'] = $portfolioData; // Laravel otomatis encode ke JSON karena casting di Model
+        $data['portfolio'] = $portfolioData;
 
         Talent::create($data);
 
@@ -84,11 +88,15 @@ class AdminTalentController extends Controller
 
     public function update(Request $request, Talent $talent)
     {
+        // Validasi Update
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'role' => 'required|string|max:255',
             'niche' => 'required|string|max:255',
             'followers_count' => 'nullable|integer',
+            'rate_min' => 'required|numeric|min:0', // BARU
+            'rate_max' => 'required|numeric|gte:rate_min', // BARU
+            'is_featured' => 'nullable',
             'bio' => 'required|string',
             'skills' => 'required|string',
             'interests' => 'nullable|string',
@@ -103,32 +111,26 @@ class AdminTalentController extends Controller
             'portfolio' => 'nullable|array',
         ]);
 
-        // Handle Photo Update
+        $data['is_featured'] = $request->has('is_featured') ? true : false;
+
         if ($request->hasFile('photo')) {
-            // Hapus foto lama
             if ($talent->photo) Storage::disk('public')->delete($talent->photo);
             $data['photo'] = $request->file('photo')->store('talents', 'public');
         }
 
-        // Convert Array
         $data['skills'] = array_map('trim', explode(',', $request->skills));
         if($request->interests) {
             $data['interests'] = array_map('trim', explode(',', $request->interests));
         }
 
-        // Handle Portfolio Logic (Campuran data lama & baru agak kompleks, kita simplifikasi replace all untuk sekarang)
-        // Idealnya: Cek apakah user upload gambar baru untuk portfolio tertentu.
-        $currentPortfolio = $talent->portfolio ?? [];
+        // Simplifikasi Portfolio Update (Replace strategy for simplicity in example)
         $newPortfolioData = [];
-
         if ($request->has('portfolio')) {
-            foreach ($request->portfolio as $key => $item) {
-                $thumbPath = $item['existing_thumbnail'] ?? null; // Ambil path lama dari hidden input
-
+            foreach ($request->portfolio as $item) {
+                $thumbPath = $item['existing_thumbnail'] ?? null;
                 if (isset($item['thumbnail']) && $item['thumbnail'] instanceof \Illuminate\Http\UploadedFile) {
                     $thumbPath = $item['thumbnail']->store('portfolios', 'public');
                 }
-
                 $newPortfolioData[] = [
                     'title' => $item['title'],
                     'link' => $item['link'],

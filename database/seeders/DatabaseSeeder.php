@@ -2,30 +2,28 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Talent;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create admin user
-        // User Admin
-        User::create([
-            'name' => 'Master Admin',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
+        // 1. Panggil seeder Talent
+        $this->call([
+            TalentSeeder::class,
         ]);
-
-        // User Biasa
-        User::create([
-            'name' => 'Member Test',
-            'email' => 'member@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'member',
-        ]);
+        
+        // 2. Buat Admin (Gunakan firstOrCreate agar tidak error duplikat)
+        // Logikanya: Cari user dengan email ini. Jika TIDAK ADA, baru buat.
+        User::firstOrCreate(
+            ['email' => 'admin@example.com'], // Kunci pencarian
+            [
+                'name' => 'Admin Creator Hub',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }
